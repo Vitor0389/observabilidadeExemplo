@@ -1,147 +1,211 @@
-📊 Observabilidade com OpenTelemetry, Jaeger, Prometheus, Grafana e Apps Java
+# 📊 Observabilidade com OpenTelemetry, Jaeger, Prometheus, Grafana e Apps Java
 
-Este repositório contém uma stack completa de observabilidade utilizando Docker Compose.
+Este repositório contém uma stack completa de observabilidade utilizando **Docker Compose**.  
+O ambiente demonstra a instrumentação de aplicações **Java 17** e a visualização de dados telemétricos (**Traces** e **Métricas**) utilizando o **OpenTelemetry** como base.
+
+---
+
+## 🧩 Stack de Observabilidade
+
 O ambiente inclui:
 
-Jaeger – Visualização de traces
+- **Jaeger** – Visualização de *traces* distribuídos.
+- **OpenTelemetry Collector** – Pipeline central de ingestão, processamento e exportação de dados.
+- **Prometheus** – Banco de dados de séries temporais para armazenamento de métricas.
+- **Grafana** – Criação de dashboards e visualização de métricas.
+- **App A e App B (Java 17)** – Aplicações de exemplo instrumentadas via OpenTelemetry SDK.
 
-OpenTelemetry Collector – Pipeline central de ingestão e exportação
+---
 
-Prometheus – Armazenamento de métricas
+## 🚀 Como Executar o Projeto
 
-Grafana – Dashboards e visualização
+### 🟦 1. Pré-requisitos
 
-App A e App B (Java 17) – Aplicações instrumentadas via OTel
+Certifique-se de ter instalado em sua máquina:
 
-🚀 Como Executar o Projeto
-🟦 1. Pré-requisitos
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- (Opcional) **Java 17**, caso queira rodar os apps localmente fora dos containers.
 
-Certifique-se de ter instalado:
+---
 
-Docker
+### ▶️ 2. Subindo toda a Stack
 
-Docker Compose
+Na raiz do projeto, execute o comando para construir as imagens e subir os containers:
 
-(Opcional) Java 17, caso queira rodar os apps localmente
-
-▶️ 2. Subindo toda a Stack
-
-Na raiz do projeto, execute:
-
+```bash
 docker compose up --build
+```
 
+Ou, para rodar em modo *detached* (segundo plano):
 
-Ou em modo detached:
-
+```bash
 docker compose up --build -d
+```
 
+---
+
+## 🌐 Serviços e Portas
 
 A stack iniciará os seguintes serviços:
 
-Serviço	URL / Porta
-Jaeger	http://localhost:16686
+| Serviço        | URL / Porta             | Descrição                    |
+|----------------|-------------------------|------------------------------|
+| **Jaeger UI**  | http://localhost:16686  | Visualização de traces       |
+| **Prometheus** | http://localhost:9090   | Consulta de métricas cruas   |
+| **Grafana**    | http://localhost:3000   | Dashboards de observabilidade|
+| **App A**      | http://localhost:8081   | Aplicação frontend / entrypoint |
+| **App B**      | http://localhost:8082   | Aplicação backend            |
+| **OTel Collector** | `4317` (gRPC), `4318` (HTTP), `8889` | Ingestão e exportação OTLP |
 
-Prometheus	http://localhost:9090
+---
 
-Grafana	http://localhost:3000
+## 🔍 3. Acessando as Ferramentas
 
-App A	http://localhost:8081
+### 🟣 Jaeger (Visualização de Traces)
 
-App B	http://localhost:8082
+1. Acesse: http://localhost:16686  
+2. No menu lateral **Service**, selecione `appA` ou `appB`.  
+3. Clique em **Find Traces** para explorar:
+   - *Spans*
+   - Dependências entre serviços
+   - Tempo de resposta de cada chamada
 
-OTel Collector	4317 (gRPC), 4318 (HTTP), 8889 (Prometheus metrics)
-🔍 3. Acessando as Ferramentas
-🟣 Jaeger (Visualização de Traces)
+---
 
-Acesse:
+### 📈 Grafana (Dashboards)
 
-http://localhost:16686
+1. Acesse: http://localhost:3000  
+2. Login padrão:
 
-Em Service, selecione appA ou appB
+   - Usuário: `admin`  
+   - Senha: `admin`
 
-Explore spans, dependências e tempo de resposta
+3. Configuração inicial (caso não esteja automatizada):
 
-📈 Grafana (Dashboards)
+   - Vá em **Configuration > Data sources > Add data source**.
+   - Selecione **Prometheus**.
+   - Em **URL**, informe: `http://prometheus:9090` (comunicação interna no Docker).
+   - Salve e teste a conexão.
 
-Acesse:
+Depois disso, você pode criar dashboards ou importar dashboards prontos para visualizar as métricas coletadas.
 
-http://localhost:3000
+---
 
-Login padrão:
+### 📊 Prometheus (Métricas cruas)
 
-Usuário: admin
-Senha: admin
+1. Acesse: http://localhost:9090  
+2. Utilize a barra de busca para pesquisar métricas exportadas pelo OpenTelemetry Collector e pelas aplicações Java.  
+   Exemplos de consultas:
+   - `otelcol_processor_batch_batch_send_size`
+   - `http_server_requests_seconds_count`
+   - `jvm_memory_used_bytes`
 
+---
 
-Adicione o Prometheus como Data Source:
+## 🧪 4. Gerando Traces e Métricas
 
-URL: http://prometheus:9090
+Para ver os dados fluindo, é necessário gerar tráfego nas aplicações.
 
-📊 Prometheus (Métricas cruas)
+Chame o **App A** para iniciar uma requisição que fará chamadas encadeadas ao **App B**:
 
-Acesse:
-
-http://localhost:9090
-
-Pesquise métricas do OpenTelemetry Collector e das aplicações.
-
-🧪 4. Gerando Traces e Métricas
-
-Chame o App A para iniciar chamadas encadeadas:
-
+```bash
 curl http://localhost:8081/algum-endpoint
+```
 
+> Ajuste o endpoint conforme a implementação do App A (por exemplo, `/api/test`, `/hello`, etc).
 
-Fluxo gerado:
+### Fluxo gerado
 
-App A recebe a requisição
+1. **App A** recebe a requisição HTTP.
+2. **App A** chama o **App B** internamente.
+3. Ambos geram **spans** e **métricas** via OpenTelemetry SDK.
+4. O **OpenTelemetry Collector** recebe os dados via OTLP.
+5. O Collector envia:
+   - **Traces** → para o **Jaeger**.
+   - **Métricas** → para o **Prometheus**.
+6. O **Grafana** consulta o **Prometheus** e exibe visualizações.
 
-App A chama o App B
+---
 
-Os dois geram spans
+## 🔧 5. Arquitetura do Ambiente
 
-OTel Collector recebe tudo e envia para Jaeger e Prometheus
+O fluxo de dados segue o padrão **OTLP (OpenTelemetry Protocol)**:
 
-🔧 5. Arquitetura do Ambiente
-App A  →  OTel Collector  →  Jaeger
-   ↓              ↓
-App B        Prometheus  →  Grafana
+```mermaid
+flowchart LR
+    AppA[App A] -->|OTLP| OTel[OTel Collector]
+    AppB[App B] -->|OTLP| OTel
+    
+    OTel -->|Traces| Jaeger[Jaeger]
+    OTel -->|Metrics| Prometheus[Prometheus]
+    Prometheus -->|Consulta| Grafana[Grafana]
+```
 
+Resumo do fluxo:
 
-Apps Java enviam traces e métricas via OTLP/gRPC
+- Apps Java enviam **traces** e **métricas** via **OTLP/gRPC** para o Collector.
+- O **Collector** processa, filtra e roteia os dados:
+  - **Traces → Jaeger**
+  - **Métricas → Prometheus**
+- O **Grafana** consulta o Prometheus para visualização de métricas.
 
-Collector roteia os dados para Jaeger e Prometheus
+---
 
-Grafana visualiza métricas vindas do Prometheus
+## 🔄 6. Comandos Úteis
 
-🔄 6. Comandos Úteis
 Parar os serviços:
+
+```bash
 docker compose down
+```
 
-Parar e apagar volumes:
+Parar e apagar volumes (limpa os dados do Prometheus/Grafana):
+
+```bash
 docker compose down -v
+```
 
-Subir novamente:
+Subir novamente (reconstruindo imagens):
+
+```bash
 docker compose up --build
+```
 
-📁 7. Estrutura do Projeto
+Ver logs de um serviço específico:
+
+```bash
+docker compose logs -f <nome-do-servico>
+# Ex.: docker compose logs -f appA
+```
+
+---
+
+## 📁 7. Estrutura do Projeto
+
+```text
 /
-├── docker-compose.yml
-├── otel-collector-config.yaml
-├── prometheus.yml
-├── appA/
+├── docker-compose.yml          # Orquestração dos containers
+├── otel-collector-config.yaml  # Configuração do pipeline do OpenTelemetry Collector
+├── prometheus.yml              # Configuração do Prometheus (scrape, jobs etc.)
+├── appA/                       # Código fonte do microsserviço A (Java)
 │   └── (código Java)
-├── appB/
+├── appB/                       # Código fonte do microsserviço B (Java)
 │   └── (código Java)
+└── README.md                   # Documentação do projeto
+```
 
-🧱 8. Tecnologias Usadas
+> Os diretórios `appA` e `appB` incluem a instrumentação com OpenTelemetry SDK (traces e métricas).
 
-Jaeger 1.60
+---
 
-OpenTelemetry Collector 0.110
+## 🧱 8. Tecnologias Usadas
 
-Prometheus (latest)
+- **Jaeger**: `1.60`
+- **OpenTelemetry Collector**: `0.110`
+- **Prometheus**: `latest`
+- **Grafana**: `latest`
+- **Linguagem**: `Java 17` + **OpenTelemetry SDK**
+- **Containerização**: Docker + Docker Compose
 
-Grafana (latest)
-
-Java 17 + OTel SDK
+---
